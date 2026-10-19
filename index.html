@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Change It 4 Me — Don't buy it. Swap it.</title>
+  <meta name="description" content="A modern platform for key-for-key exchange. Swap cars, real estate, and goods directly — without fees or middlemen.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    :root {
+      --ink: #082228;
+      --ink-soft: #3d5256;
+      --muted: #7d8d90;
+      --line: rgba(8, 34, 40, 0.08);
+      --bg: #f4f5f4;
+      --card: #ffffff;
+      --mint: #a9ffca;
+      --mint-deep: #7df0ad;
+      --forest: #0c2c28;
+      --forest-2: #123832;
+      --radius: 28px;
+      --shadow: 0 20px 50px rgba(8, 34, 40, 0.08);
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+      overflow-x: clip;
+    }
+    body.is-loading, body.menu-open { overflow: hidden; }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select { font-family: inherit; }
+    em { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-weight: 500; }
+
+    .notice {
+      background: var(--forest);
+      color: #d7efe4;
+      text-align: center;
+      font-size: 13px;
+      padding: 10px 20px;
+    }
+    .notice a { color: var(--mint); text-decoration: underline; text-underline-offset: 2px; }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px 32px;
+      background: rgba(244, 245, 244, 0.86);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid transparent;
+    }
+    .header.scrolled { border-bottom-color: var(--line); }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-size: 20px;
+    }
+    .logo-word { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .logo svg { display: block; }
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      color: var(--ink-soft);
+      font-size: 15px;
+    }
+    .nav a:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .text-link { font-size: 15px; color: var(--ink-soft); }
+    .text-link:hover { color: var(--ink); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 0;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 14.5px;
+      font-weight: 600;
+      transition: transform .2s ease, background .2s ease, color .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-mint { background: var(--mint); color: var(--forest); }
+    .btn-mint:hover { background: var(--mint-deep); }
+    .btn-login {
+      background: #fff;
+      color: var(--forest);
+      border: 1.5px solid var(--forest);
+      box-shadow: 0 8px 20px rgba(12, 44, 40, 0.08);
+    }
+    .btn-login:hover { background: var(--forest); color: #fff; }
+    .btn-dark { background: var(--forest); color: #fff; }
+    .btn-dark:hover { background: #16443c; }
+    .btn-ghost {
+      background: transparent;
+      color: #fff;
+      padding-left: 6px;
+    }
+    .btn .arrow {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--forest);
+      color: #fff;
+    }
+    .btn-dark .arrow, .btn-mint.on-dark .arrow { background: var(--mint); color: var(--forest); }
+    .btn-block { width: 100%; }
+
+    .menu-toggle {
+      display: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: #fff;
+      cursor: pointer;
+      place-items: center;
+      align-content: center;
+      gap: 4px;
+    }
+    .menu-toggle span {
+      display: block;
+      width: 16px;
+      height: 1.5px;
+      background: var(--ink);
+      border-radius: 2px;
+      transition: transform .25s ease, opacity .2s ease;
+    }
+    .menu-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+    .menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+    .menu-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+
+    .hero {
+      position: relative;
+      min-height: calc(100vh - 92px);
+      margin: 8px 12px 0;
+      border-radius: 32px;
+      overflow: hidden;
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      background: #12322c center/cover no-repeat;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(6, 20, 18, 0.18) 0%, rgba(6, 20, 18, 0.15) 40%, rgba(6, 18, 16, 0.78) 100%);
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      width: min(var(--max), calc(100% - 80px));
+      margin: 0 auto;
+      padding: 80px 0 64px;
+      display: grid;
+      grid-template-columns: 1.3fr .7fr;
+      gap: 32px;
+      align-items: end;
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(48px, 6vw, 78px);
+      line-height: 0.98;
+      letter-spacing: -0.045em;
+      font-weight: 600;
+    }
+    .hero h1 em { font-weight: 500; }
+    .lead {
+      max-width: 520px;
+      margin: 18px 0 0;
+      color: rgba(255,255,255,.88);
+      font-size: 16.5px;
+    }
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .hero-actions .linkish {
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+    }
+    .stat-card {
+      justify-self: end;
+      background: rgba(255,255,255,.16);
+      border: 1px solid rgba(255,255,255,.22);
+      backdrop-filter: blur(16px);
+      border-radius: 22px;
+      padding: 18px 18px 16px;
+      width: 210px;
+    }
+    .stat-card strong {
+      display: block;
+      font-size: 32px;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .stat-card span { display: block; margin-top: 6px; font-size: 14px; color: rgba(255,255,255,.86); }
+    .avatars { display: flex; margin-top: 14px; }
+    .avatars img, .avatars .more {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.7);
+      margin-left: -8px;
+      object-fit: cover;
+    }
+    .avatars img:first-child { margin-left: 0; }
+    .avatars .more {
+      display: grid;
+      place-items: center;
+      background: #fff;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    .trust {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 28px;
+      align-items: center;
+      width: min(var(--max), calc(100% - 48px));
+      margin: 0 auto;
+      padding: 42px 0;
+    }
+    .trust p { margin: 0; font-weight: 600; letter-spacing: -0.02em; }
+    .marquee {
+      display: flex;
+      justify-content: space-between;
+      gap: 22px;
+      color: #b7c0c2;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-size: 20px;
+      flex-wrap: wrap;
+    }
+
+    section { padding: 36px 0 20px; scroll-margin-top: 84px; }
+    .wrap { width: min(var(--max), calc(100% - 48px)); margin: 0 auto; }
+    h2 {
+      margin: 0;
+      font-size: clamp(36px, 4.4vw, 54px);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      font-weight: 600;
+    }
+    h2 em { color: #8ea0a2; font-weight: 500; }
+
+    .about-grid { display: block; }
+    .about-copy p:first-of-type {
+      margin-top: 0;
+      font-size: clamp(22px, 2.4vw, 30px);
+      line-height: 1.35;
+      letter-spacing: -0.03em;
+      color: #9aa8aa;
+    }
+    .about-copy p:first-of-type strong { color: var(--ink); font-weight: 600; }
+    .about-copy p:last-child { color: var(--ink-soft); max-width: 760px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 56px;
+    }
+    .stat {
+      background: #fff;
+      border-radius: 24px;
+      padding: 26px 22px 22px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .stat b {
+      font-size: 42px;
+      letter-spacing: -0.05em;
+      font-weight: 600;
+    }
+    .stat h3 { margin: 0 0 6px; font-size: 16px; }
+    .stat p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .split {
+      margin-top: 72px;
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .photo-card {
+      position: relative;
+      border-radius: 28px;
+      overflow: hidden;
+      min-height: 460px;
+      background: #ddd center/cover no-repeat;
+    }
+    .float-note {
+      position: absolute;
+      left: 22px;
+      bottom: 22px;
+      background: #fff;
+      border-radius: 18px;
+      padding: 14px 16px;
+      width: min(250px, calc(100% - 44px));
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .float-note .badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--forest);
+      color: var(--mint);
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+    .float-note strong { display: block; font-size: 15px; }
+    .float-note span { color: var(--muted); font-size: 13px; }
+    .checks { list-style: none; margin: 22px 0 26px; padding: 0; }
+    .checks li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink-soft);
+    }
+    .checks svg { flex: none; margin-top: 2px; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 32px;
+      margin-bottom: 28px;
+    }
+    .section-head h2 { max-width: 720px; }
+    .section-head p { max-width: 340px; color: var(--ink-soft); margin: 0; }
+
+    .cards-3, .cards-2 {
+      display: grid;
+      gap: 18px;
+    }
+    .cards-3 { grid-template-columns: repeat(3, 1fr); }
+    .service {
+      position: relative;
+      min-height: 420px;
+      border-radius: 28px;
+      overflow: hidden;
+      color: #fff;
+      background: #234 center/cover no-repeat;
+      display: flex;
+      align-items: flex-end;
+    }
+    .service::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(8, 24, 22, .78));
+    }
+    .service-body { position: relative; z-index: 1; padding: 24px; }
+    .service h3 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.03em; }
+    .service p { margin: 0 0 16px; color: rgba(255,255,255,.86); }
+    .center { text-align: center; margin-top: 26px; }
+
+    .slider-wrap { position: relative; }
+    .slider {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding-bottom: 8px;
+      scrollbar-width: none;
+    }
+    .slider::-webkit-scrollbar { display: none; }
+    .feature, .shot {
+      scroll-snap-align: start;
+      flex: 0 0 320px;
+      background: #fff;
+      border-radius: 24px;
+      min-height: 360px;
+      padding: 22px;
+    }
+    .shot {
+      padding: 0;
+      overflow: hidden;
+      background: #ddd center/cover no-repeat;
+    }
+    .feature .ico {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #f3f5f4;
+      display: grid;
+      place-items: center;
+      margin-bottom: 48px;
+    }
+    .feature h3 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; }
+    .feature p { margin: 0; color: var(--muted); }
+    .progress {
+      width: 120px;
+      height: 3px;
+      background: #e3e7e6;
+      border-radius: 99px;
+      margin: 18px auto 0;
+      overflow: hidden;
+    }
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 35%;
+      background: var(--forest);
+    }
+
+    .offers {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 16px;
+    }
+    .offer {
+      position: relative;
+      border-radius: 28px;
+      overflow: hidden;
+      min-height: 280px;
+      color: #fff;
+      background: #333 center/cover no-repeat;
+      display: flex;
+      align-items: flex-end;
+    }
+    .offer.tall { min-height: 576px; }
+    .offer-col { display: grid; gap: 16px; }
+    .offer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(6,18,16,.75));
+    }
+    .offer-body { position: relative; z-index: 1; padding: 22px; }
+    .pill {
+      display: inline-flex;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .offer h3 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.03em; }
+    .offer p { margin: 0; color: rgba(255,255,255,.86); font-size: 14px; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 28px;
+    }
+    .step {
+      background: #fff;
+      border-radius: 24px;
+      padding: 24px 22px 26px;
+      min-height: 240px;
+    }
+    .step .num {
+      font-size: 13px;
+      letter-spacing: .08em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .step h3 { margin: 28px 0 10px; font-size: 22px; letter-spacing: -0.03em; }
+    .step p { margin: 0; color: var(--ink-soft); }
+
+    .plans {
+      display: grid;
+      grid-template-columns: 1fr 1fr .9fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .plan {
+      background: #fff;
+      border-radius: 28px;
+      padding: 28px 26px;
+    }
+    .plan.dark {
+      background: var(--forest);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .plan .tag {
+      display: inline-flex;
+      background: var(--mint);
+      color: var(--forest);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .plan h3 { margin: 0; font-size: 28px; letter-spacing: -0.03em; }
+    .price {
+      margin: 14px 0 6px;
+      font-size: 36px;
+      letter-spacing: -0.05em;
+      font-weight: 600;
+    }
+    .price small { font-size: 16px; font-weight: 500; color: var(--muted); }
+    .plan.dark .price small { color: rgba(255,255,255,.7); }
+    .plan ul { margin: 18px 0 22px; padding: 0; list-style: none; }
+    .plan li {
+      padding: 9px 0 9px 26px;
+      position: relative;
+      color: var(--ink-soft);
+      border-top: 1px solid var(--line);
+    }
+    .plan li::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mint-deep);
+      position: absolute;
+      left: 4px;
+      top: 16px;
+    }
+    .plan .sub { color: var(--muted); margin: 8px 0 0; }
+
+    .articles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .article {
+      background: #fff;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .article .thumb { height: 190px; background: #ddd center/cover no-repeat; }
+    .article .body { padding: 18px 18px 20px; }
+    .article h3 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; }
+    .article p { margin: 0 0 16px; color: var(--ink-soft); }
+    .more { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+
+    .cta {
+      margin: 28px 12px 12px;
+      border-radius: 32px;
+      min-height: 520px;
+      background: #245c32 center/cover no-repeat;
+      position: relative;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .cta::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(8, 28, 24, .28);
+    }
+    .cta-card {
+      position: relative;
+      width: min(480px, calc(100% - 32px));
+      background: var(--forest);
+      color: #fff;
+      border-radius: 28px;
+      padding: 32px 28px;
+      text-align: center;
+    }
+    .cta-card h2 { font-size: 36px; color: #fff; }
+    .cta-card h2 em { color: #d5ece3; }
+    .cta-card p { color: rgba(255,255,255,.78); margin: 10px 0 18px; }
+    .form { display: grid; gap: 10px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    input {
+      width: 100%;
+      border: 0;
+      background: #1c3d38;
+      color: #fff;
+      border-radius: 999px;
+      padding: 14px 16px;
+      font-size: 16px;
+      outline: none;
+    }
+    input::placeholder { color: #9eb0ac; }
+    .form-note { min-height: 20px; margin: 8px 0 0; font-size: 14px; color: var(--mint); }
+
+    body > footer {
+      background: #071c22;
+      color: #d5e2e4;
+      padding: 54px 0 0;
+      margin-top: 0;
+    }
+    .foot {
+      width: min(var(--max), calc(100% - 48px));
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 30px;
+    }
+    .foot p { max-width: 420px; color: #b7c6c8; }
+    .foot-nav { display: flex; gap: 22px; flex-wrap: wrap; justify-content: flex-end; align-content: flex-start; }
+    .foot a:hover { color: #fff; }
+    .socials { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+    .socials a {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #12303a;
+      color: #fff;
+      font-size: 13px;
+    }
+    .wordmark {
+      margin: 30px auto 0;
+      width: min(var(--max), calc(100% - 24px));
+      font-size: clamp(64px, 13vw, 168px);
+      line-height: .85;
+      font-weight: 700;
+      letter-spacing: -0.06em;
+      color: rgba(255,255,255,.08);
+      text-align: center;
+      user-select: none;
+    }
+    .legal {
+      width: min(var(--max), calc(100% - 48px));
+      margin: 0 auto;
+      padding: 18px 0 28px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: #8ea0a4;
+      font-size: 14px;
+    }
+    .legal nav { display: flex; gap: 16px; }
+
+    .map-layout {
+      display: grid;
+      grid-template-columns: 1.45fr .7fr;
+      gap: 16px;
+      margin-top: 28px;
+      align-items: stretch;
+    }
+    .map-frame {
+      height: auto;
+      aspect-ratio: 1.05 / 1;
+      min-height: 520px;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #e7eeea;
+      position: relative;
+    }
+    #worldMap { position: absolute; inset: 0; background: #e7eeea; }
+    .leaflet-container { font-family: "Manrope", sans-serif; background: #eef2ef; }
+    .leaflet-container img { max-width: none; }
+    .leaflet-tile-pane { filter: grayscale(1) brightness(1.08) contrast(0.85); }
+    .pin-wrap { background: transparent; border: 0; }
+    .pin {
+      width: 16px;
+      height: 16px;
+      margin: 6px;
+      border-radius: 50%;
+      background: #0c2c28;
+      border: 3px solid #a9ffca;
+      box-shadow: 0 0 0 7px rgba(169, 255, 202, 0.45);
+      display: block;
+      cursor: pointer;
+    }
+    .pin.active {
+      background: #a9ffca;
+      border-color: #0c2c28;
+      box-shadow: 0 0 0 8px rgba(12, 44, 40, 0.18);
+    }
+    .map-tip {
+      background: #0c2c28;
+      color: #fff;
+      border: 0;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 600;
+      font-size: 13px;
+      box-shadow: none;
+    }
+    .map-tip::before { display: none; }
+    .country-panel {
+      background: #fff;
+      border-radius: 28px;
+      padding: 26px 22px;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .country-panel h3 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: -0.03em;
+    }
+    .country-panel .hint { margin: 0; color: var(--ink-soft); }
+    .offer-list { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 10px; }
+    .offer-list a {
+      display: block;
+      border-radius: 18px;
+      padding: 14px 14px;
+      background: var(--bg);
+    }
+    .offer-list a:hover { background: #e7f8ee; }
+    .offer-list strong { display: block; letter-spacing: -0.02em; }
+    .offer-list span { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .offer-list em { font-family: inherit; font-style: normal; color: var(--ink-soft); font-size: 14px; }
+
+    .mobile-panel {
+      position: fixed;
+      z-index: 39;
+      top: 68px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 12px 22px 28px;
+      background: rgba(244, 245, 244, 0.98);
+      backdrop-filter: blur(16px);
+      transform: translateY(-12px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .28s ease, transform .28s ease, visibility .28s;
+      overflow: auto;
+    }
+    .mobile-panel a, .mobile-panel button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .mobile-panel .menu-cta {
+      margin-top: auto;
+      border: 0;
+      border-radius: 999px;
+      background: var(--mint);
+      color: var(--forest);
+      text-align: center;
+      padding: 16px 18px;
+    }
+    .mobile-panel.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: none;
+    }
+
+    .preloader {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 18px;
+      background: #071c22;
+      color: #fff;
+      transition: opacity .55s ease, visibility .55s ease;
+    }
+    .preloader.done { opacity: 0; visibility: hidden; }
+    .preloader-logo {
+      width: 72px;
+      height: 72px;
+      animation: spin 1.05s linear infinite;
+    }
+    .preloader-count {
+      font-size: 42px;
+      font-weight: 600;
+      letter-spacing: -0.05em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .preloader-track {
+      width: min(220px, 60vw);
+      height: 3px;
+      border-radius: 99px;
+      background: rgba(255,255,255,.16);
+      overflow: hidden;
+    }
+    .preloader-track span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--mint);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(22px); }
+      to { opacity: 1; transform: none; }
+    }
+    body.is-ready .hero h1,
+    body.is-ready .hero .lead,
+    body.is-ready .hero-actions,
+    body.is-ready .stat-card {
+      animation: rise .85s cubic-bezier(.16, 1, .3, 1) both;
+    }
+    body.is-ready .hero .lead { animation-delay: .08s; }
+    body.is-ready .hero-actions { animation-delay: .16s; }
+    body.is-ready .stat-card { animation-delay: .24s; }
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .7s ease, transform .75s cubic-bezier(.16, 1, .3, 1);
+    }
+    .reveal.in { opacity: 1; transform: none; }
+    .pin { transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
+    @media (hover: hover) {
+      .service:hover, .offer:hover, .article:hover, .plan:hover, .step:hover { transform: translateY(-4px); }
+    }
+
+    @media (max-width: 980px) {
+      .nav, .header .btn-login { display: none; }
+      .menu-toggle { display: grid; }
+      .notice { font-size: 12.5px; padding: 10px 16px; }
+      .hero { margin: 0; border-radius: 0 0 28px 28px; min-height: auto; }
+      .hero-inner {
+        width: calc(100% - 40px);
+        padding: 56px 0 40px;
+        gap: 22px;
+      }
+      .hero-inner, .about-grid, .split, .offers, .plans, .articles, .steps, .stats, .trust, .foot, .map-layout {
+        grid-template-columns: 1fr;
+      }
+      .stat-card { justify-self: start; width: min(100%, 280px); }
+      .cards-3, .articles, .steps, .stats { grid-template-columns: 1fr 1fr; }
+      .service { min-height: 300px; }
+      .offer.tall { min-height: 340px; }
+      .map-frame { aspect-ratio: auto; min-height: 0; height: 340px; }
+      #worldMap { height: 100%; }
+      .country-panel { min-height: 0; }
+      .marquee { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; font-size: 18px; }
+      .marquee::-webkit-scrollbar { display: none; }
+      .section-head { flex-direction: column; align-items: flex-start; gap: 14px; }
+      .section-head p, .section-head h2 { max-width: none; }
+      .section-head, .foot-nav, .socials { justify-content: flex-start; }
+      .split { margin-top: 36px; gap: 28px; }
+      .photo-card { min-height: 320px; }
+      .feature, .shot { flex-basis: min(78vw, 320px); min-height: 300px; }
+      h2 { font-size: clamp(32px, 8vw, 44px); }
+      .wordmark { font-size: clamp(42px, 12vw, 96px); }
+    }
+    @media (max-width: 640px) {
+      .header {
+        padding: 12px 16px;
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+      }
+      .logo { font-size: 17px; gap: 8px; }
+      .header .btn-mint { font-size: 0; gap: 0; padding: 4px; }
+      .header .btn-mint .arrow { width: 36px; height: 36px; font-size: 16px; }
+      .wrap, .trust, .foot, .legal { width: calc(100% - 32px); }
+      .trust { padding: 28px 0; }
+      section { padding: 22px 0 8px; }
+      .hero-inner { width: calc(100% - 32px); padding: 36px 0 28px; }
+      .hero h1 { font-size: 42px; }
+      .marquee { flex-wrap: wrap; overflow: visible; row-gap: 8px; }
+      .lead { font-size: 15.5px; }
+      .hero-actions { gap: 14px; }
+      .hero-actions .btn { width: 100%; }
+      .cards-3, .articles, .steps, .plans { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat { min-height: 148px; padding: 18px 16px; }
+      .stat b { font-size: 32px; }
+      .service { min-height: 250px; }
+      .service h3, .offer h3, .plan h3 { font-size: 24px; }
+      .offer, .offer.tall { min-height: 240px; }
+      .map-frame { height: 280px; border-radius: 22px; }
+      .cta { margin: 20px 8px 8px; border-radius: 24px; min-height: 0; padding: 28px 0; }
+      .cta-card { padding: 26px 18px; border-radius: 22px; }
+      .cta-card h2 { font-size: 30px; }
+      .step { min-height: 0; }
+      .step h3 { margin-top: 16px; }
+      .legal { font-size: 13px; }
+      .wordmark { font-size: clamp(34px, 11.5vw, 56px); line-height: .9; }
+      .foot { gap: 22px; }
+    }
+    @media (max-width: 380px) {
+      .logo-word { display: none; }
+      .hero h1 { font-size: 36px; }
+      .stats { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .preloader-logo, body.is-ready .hero h1, body.is-ready .hero .lead,
+      body.is-ready .hero-actions, body.is-ready .stat-card { animation: none; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .mobile-panel, .preloader, .btn, .menu-toggle span { transition: none; }
+    }
+  </style>
+</head>
+<body class="is-loading">
+  <div class="preloader" id="preloader" role="status" aria-live="polite" aria-label="Loading">
+    <svg class="preloader-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <circle cx="16" cy="16" r="16" fill="#a9ffca"/>
+      <path d="M10 16a6 6 0 0 1 10.2-4.2" stroke="#0c2c28" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M22 16a6 6 0 0 1-10.2 4.2" stroke="#0c2c28" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M19.2 9.2 20.6 12.4 17.4 12" stroke="#0c2c28" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12.8 22.8 11.4 19.6 14.6 20" stroke="#0c2c28" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="preloader-count" id="preloaderCount">0%</div>
+    <div class="preloader-track" aria-hidden="true"><span id="preloaderBar"></span></div>
+  </div>
+  <div class="notice">
+    Thank you for visiting changeit4me.com. The project is in testing and not every feature may work yet. Questions:
+    <a href="mailto:info@changeit4me.com">info@changeit4me.com</a>
+  </div>
+
+  <header class="header" id="header">
+    <a class="logo" href="https://www.changeit4me.com/" aria-label="Change It 4 Me">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="16" fill="#0c2c28"/>
+        <path d="M10 16a6 6 0 0 1 10.2-4.2" stroke="#a9ffca" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M22 16a6 6 0 0 1-10.2 4.2" stroke="#a9ffca" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M19.2 9.2 20.6 12.4 17.4 12" stroke="#a9ffca" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12.8 22.8 11.4 19.6 14.6 20" stroke="#a9ffca" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="logo-word">ChangeIt4Me</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="#categories">Categories</a>
+      <a href="#offers">Offers</a>
+      <a href="#world">Where we work</a>
+      <a href="#process">How it works</a>
+      <a href="#about">About</a>
+    </nav>
+    <div class="header-actions">
+      <a class="btn btn-login" href="https://www.changeit4me.com/login">Log in</a>
+      <a class="btn btn-mint" href="https://www.changeit4me.com/register">10 free swaps <span class="arrow" aria-hidden="true">→</span></a>
+      <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+  <div class="mobile-panel" id="mobilePanel">
+    <a href="#categories">Categories</a>
+    <a href="#offers">Offers</a>
+    <a href="#world">Where we work</a>
+    <a href="#process">How it works</a>
+    <a href="#about">About</a>
+    <a href="https://www.changeit4me.com/browse">Browse listings</a>
+    <a href="https://www.changeit4me.com/login">Log in</a>
+    <a class="menu-cta" href="https://www.changeit4me.com/register">Register · 10 free swaps</a>
+  </div>
+
+  <section class="hero" style="background-image:url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=80')">
+    <div class="hero-inner">
+      <div>
+        <h1>Don't buy it —<br><em>Swap it.</em></h1>
+        <p class="lead">Look — this is the good part. You can swap what you already have. Register and get 10 free swaps.</p>
+        <div class="hero-actions">
+          <a class="btn btn-mint" href="https://www.changeit4me.com/register">Register · 10 free swaps <span class="arrow">→</span></a>
+          <a class="linkish" href="#offers">Explore offers ↗</a>
+        </div>
+      </div>
+      <aside class="stat-card">
+        <strong>10</strong>
+        <span>Free swaps when you register.</span>
+        <div class="avatars" aria-hidden="true">
+          <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&q=60" alt="">
+          <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=60" alt="">
+          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=80&q=60" alt="">
+          <span class="more">+</span>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <div class="trust">
+    <p>Swap cars, homes and things people already own</p>
+    <div class="marquee" aria-label="Categories">
+      <span>Cars</span>
+      <span>Homes</span>
+      <span>Electronics</span>
+      <span>Garden</span>
+      <span>Parts</span>
+    </div>
+  </div>
+
+  <section id="about">
+    <div class="wrap about-grid">
+      <div class="about-copy">
+        <p><strong>Change It 4 Me</strong> is for the moment someone needs a different city, a different car, or a thing that is already sitting unused in someone else’s home.</p>
+        <p>Forget the usual marketplace noise. The idea is direct exchange: you describe what you have, and the platform helps you find people who actually want that item. Fair, simple, and free to list.</p>
+      </div>
+    </div>
+    <div class="wrap stats">
+      <article class="stat">
+        <b>6</b>
+        <div>
+          <h3>Categories</h3>
+          <p>Cars, homes, electronics, garden, parts and clothing.</p>
+        </div>
+      </article>
+      <article class="stat">
+        <b>0</b>
+        <div>
+          <h3>Platform fees</h3>
+          <p>Agree the terms yourselves and exchange directly.</p>
+        </div>
+      </article>
+      <article class="stat">
+        <b>1:1</b>
+        <div>
+          <h3>Key-for-key</h3>
+          <p>A car for a car. A home for a home. An item for an item.</p>
+        </div>
+      </article>
+      <article class="stat">
+        <b>3</b>
+        <div>
+          <h3>Steps to a deal</h3>
+          <p>Post what you have, find a match, make the exchange.</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="wrap split">
+      <div class="photo-card" style="background-image:url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=80')">
+        <div class="float-note">
+          <div class="badge" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 7h10M7 12h10M7 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <div>
+            <strong>Direct exchange</strong>
+            <span>You talk to the other person, not a broker.</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2>It’s not just another <em>classifieds board</em></h2>
+        <ul class="checks">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="#a9ffca"/><path d="M5 9.2 7.6 12 13 6.5" stroke="#0c2c28" stroke-width="1.6" stroke-linecap="round"/></svg>
+            List the car, home or item — and what you want in return.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="#a9ffca"/><path d="M5 9.2 7.6 12 13 6.5" stroke="#0c2c28" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Browse people who are already looking to trade, not just to sell.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="#a9ffca"/><path d="M5 9.2 7.6 12 13 6.5" stroke="#0c2c28" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Agree the terms together. No platform fee on the exchange.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="#a9ffca"/><path d="M5 9.2 7.6 12 13 6.5" stroke="#0c2c28" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Useful things move on, instead of sitting unused at home.
+          </li>
+        </ul>
+        <a class="btn btn-dark" href="https://www.changeit4me.com/register">Register · 10 free swaps <span class="arrow">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="categories">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2>Trade what you own<br>for <em>what you need</em></h2>
+        </div>
+        <p>Six places to start. Open a category, or post your own offer and say what you would take in return.</p>
+      </div>
+      <div class="cards-3">
+        <a class="service" href="https://www.changeit4me.com/cars" style="background-image:url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80')">
+          <div class="service-body">
+            <h3>Cars</h3>
+            <p>Swap your vehicle for another.</p>
+            <span class="btn btn-mint">See listings <span class="arrow">→</span></span>
+          </div>
+        </a>
+        <a class="service" href="https://www.changeit4me.com/real-estate" style="background-image:url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80')">
+          <div class="service-body">
+            <h3>Real estate</h3>
+            <p>Home, apartment, or land.</p>
+            <span class="btn btn-mint">See listings <span class="arrow">→</span></span>
+          </div>
+        </a>
+        <a class="service" href="https://www.changeit4me.com/electronics" style="background-image:url('https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=1200&q=80')">
+          <div class="service-body">
+            <h3>Electronics</h3>
+            <p>Devices, gadgets, and more.</p>
+            <span class="btn btn-mint">See listings <span class="arrow">→</span></span>
+          </div>
+        </a>
+        <a class="service" href="https://www.changeit4me.com/home-garden" style="background-image:url('https://images.unsplash.com/photo-1616046229478-9901c5536a45?auto=format&fit=crop&w=1200&q=80')">
+          <div class="service-body">
+            <h3>Home &amp; garden</h3>
+            <p>Furniture, decor, and outdoor items.</p>
+            <span class="btn btn-mint">See listings <span class="arrow">→</span></span>
+          </div>
+        </a>
+        <a class="service" href="https://www.changeit4me.com/auto-parts" style="background-image:url('https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=1200&q=80')">
+          <div class="service-body">
+            <h3>Auto parts</h3>
+            <p>Tires, rims, accessories, and more.</p>
+            <span class="btn btn-mint">See listings <span class="arrow">→</span></span>
+          </div>
+        </a>
+        <a class="service" href="https://www.changeit4me.com/clothing-accessories" style="background-image:url('https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1200&q=80')">
+          <div class="service-body">
+            <h3>Clothing</h3>
+            <p>Fashion, shoes, and everyday style.</p>
+            <span class="btn btn-mint">See listings <span class="arrow">→</span></span>
+          </div>
+        </a>
+      </div>
+      <div class="center">
+        <a class="btn btn-dark" href="https://www.changeit4me.com/categories">All categories <span class="arrow">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2>A calmer way to <em>change what you have</em></h2>
+        </div>
+        <p>The long-term idea is simple: show your offer to people who want that exact thing, not to everyone scrolling a feed.</p>
+      </div>
+      <div class="slider" id="slider">
+        <article class="feature">
+          <div class="ico">↔</div>
+          <h3>Say what you want back</h3>
+          <p>Every offer can name the car, home or item you would take in exchange.</p>
+        </article>
+        <article class="shot" style="background-image:url('https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=900&q=80')" role="img" aria-label="A car ready to swap"></article>
+        <article class="feature">
+          <div class="ico">◷</div>
+          <h3>Move without the markup</h3>
+          <p>When you need another city or another car quickly, a direct swap skips the resale loop.</p>
+        </article>
+        <article class="shot" style="background-image:url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=900&q=80')" role="img" aria-label="A bright apartment interior"></article>
+        <article class="feature">
+          <div class="ico">✓</div>
+          <h3>You set the terms</h3>
+          <p>Meet, compare, and agree the exchange yourselves. The platform does not take a cut.</p>
+        </article>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+    </div>
+  </section>
+
+  <section id="offers">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2>From a city studio<br>to <em>a weekend car</em></h2>
+        </div>
+        <a class="btn btn-dark" href="https://www.changeit4me.com/browse">See all items <span class="arrow">→</span></a>
+      </div>
+      <div class="offers">
+        <a class="offer tall" href="https://www.changeit4me.com/listing/121" style="background-image:url('https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1400&q=80')">
+          <div class="offer-body">
+            <span class="pill">Real estate · Lisbon</span>
+            <h3>Studio apartment in central Lisbon</h3>
+            <p>Compact renovated studio steps from Chiado. Fully furnished, low condo fees. Open to a swap for a larger place outside the city.</p>
+          </div>
+        </a>
+        <div class="offer-col">
+          <a class="offer" href="https://www.changeit4me.com/listing/120" style="background-image:url('https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=1200&q=80')">
+            <div class="offer-body">
+              <span class="pill">Real estate · Auckland</span>
+              <h3>Family house with a garden</h3>
+              <p>3 bedrooms in Mount Eden. Open to an apartment closer to the CBD.</p>
+            </div>
+          </a>
+          <a class="offer" href="https://www.changeit4me.com/listing/117" style="background-image:url('https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80')">
+            <div class="offer-body">
+              <span class="pill">Cars · Manchester</span>
+              <h3>Volkswagen Golf 7 GTI, 2017</h3>
+              <p>Performance pack, DSG, heated seats. Sale or key-for-key.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+      <div class="cards-3" style="margin-top:16px">
+        <a class="offer" href="https://www.changeit4me.com/listing/119" style="background-image:url('https://images.unsplash.com/photo-1502672023488-70e25813eb80?auto=format&fit=crop&w=1000&q=80')">
+          <div class="offer-body">
+            <span class="pill">Toronto</span>
+            <h3>Modern downtown loft</h3>
+            <p>High ceilings and a view. Looking toward a suburban house.</p>
+          </div>
+        </a>
+        <a class="offer" href="https://www.changeit4me.com/listing/118" style="background-image:url('https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1000&q=80')">
+          <div class="offer-body">
+            <span class="pill">Valencia</span>
+            <h3>Sunny 2-bed near the beach</h3>
+            <p>Renovated kitchen and covered parking. Open to a city flat.</p>
+          </div>
+        </a>
+        <a class="offer" href="https://www.changeit4me.com/listing/115" style="background-image:url('https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1000&q=80')">
+          <div class="offer-body">
+            <span class="pill">Munich</span>
+            <h3>BMW 320d Touring, 2018</h3>
+            <p>Panoramic roof and navigation. Open to an exchange for an EV.</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="world">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2>We work <em>worldwide</em></h2>
+        </div>
+        <p>A dot marks a country with live offers. Hover it, then click to open the list from that country.</p>
+      </div>
+      <div class="map-layout">
+        <div class="map-frame">
+          <div id="worldMap" role="application" aria-label="World map of countries with offers"></div>
+        </div>
+        <aside class="country-panel" id="countryPanel" aria-live="polite">
+          <h3>Pick a country</h3>
+          <p class="hint">We work everywhere. The dots are places where someone has already posted an offer. Hover a dot, then click it to see what is available there.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section id="process">
+    <div class="wrap">
+      <h2>How a swap <em>actually happens</em></h2>
+      <div class="steps">
+        <article class="step">
+          <div class="num">01</div>
+          <h3>Post your offer</h3>
+          <p>List your car, property or item — and what you want in return.</p>
+        </article>
+        <article class="step">
+          <div class="num">02</div>
+          <h3>Find a match</h3>
+          <p>Browse offers and connect with people who are looking to swap.</p>
+        </article>
+        <article class="step">
+          <div class="num">03</div>
+          <h3>Make the deal</h3>
+          <p>Agree the terms and exchange directly. No fees, no hassle.</p>
+        </article>
+        <article class="step">
+          <div class="num">04</div>
+          <h3>Meet safely</h3>
+          <p>Check the details, meet in a sensible place, and keep the conversation on the listing.</p>
+        </article>
+      </div>
+      <div class="center">
+        <a class="btn btn-mint" href="https://www.changeit4me.com/add-post">Post a free ad <span class="arrow">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2>Clear exchanges,<br><em>no platform fee</em></h2>
+        </div>
+        <p>Pick the kind of trade you have in mind. Listing is free. You and the other person decide the terms.</p>
+      </div>
+      <div class="plans">
+        <article class="plan">
+          <h3>Cars</h3>
+          <div class="price">Free <small>/ to list</small></div>
+          <p class="sub">A vehicle for another vehicle, or a sale if that suits you better.</p>
+          <ul>
+            <li>Year, mileage and condition</li>
+            <li>What you would take in return</li>
+            <li>City and country on the offer</li>
+            <li>Direct messages with interested people</li>
+          </ul>
+          <a class="btn btn-dark btn-block" href="https://www.changeit4me.com/cars">Browse cars</a>
+        </article>
+        <article class="plan">
+          <span class="tag">Most wanted</span>
+          <h3>Homes</h3>
+          <div class="price">Free <small>/ to list</small></div>
+          <p class="sub">Apartment, house or land — including a move to another city.</p>
+          <ul>
+            <li>Photos and a short description</li>
+            <li>Swap, sale, or either</li>
+            <li>Neighbourhood and what you need next</li>
+            <li>No brokerage fee from the platform</li>
+          </ul>
+          <a class="btn btn-dark btn-block" href="https://www.changeit4me.com/real-estate">Browse homes</a>
+        </article>
+        <article class="plan dark">
+          <div>
+            <h3>Something more specific</h3>
+            <p>Electronics, furniture, parts or clothes. If it is useful to someone else, it can be an offer.</p>
+          </div>
+          <a class="btn btn-mint btn-block" href="https://www.changeit4me.com/register" style="margin-top:24px">Register · 10 free swaps <span class="arrow">→</span></a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2>Before you <em>make the trade</em></h2>
+        </div>
+        <a class="more" href="https://www.changeit4me.com/help">Help center →</a>
+      </div>
+      <div class="articles">
+        <article class="article">
+          <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1000&q=80')"></div>
+          <div class="body">
+            <h3>What to put in a car offer</h3>
+            <p>Year, service history, and the car you would actually accept in return.</p>
+            <a class="more" href="https://www.changeit4me.com/how-it-works">Read more →</a>
+          </div>
+        </article>
+        <article class="article">
+          <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1560185007-cde436f6a4d0?auto=format&fit=crop&w=1000&q=80')"></div>
+          <div class="body">
+            <h3>Swapping a place, not just selling it</h3>
+            <p>Say which city you are leaving, and the kind of home you want next.</p>
+            <a class="more" href="https://www.changeit4me.com/about">Read more →</a>
+          </div>
+        </article>
+        <article class="article">
+          <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1000&q=80')"></div>
+          <div class="body">
+            <h3>Meet, check, then exchange</h3>
+            <p>A short list for viewing a car or a home and keeping the deal tidy.</p>
+            <a class="more" href="https://www.changeit4me.com/safety-tips">Read more →</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta" style="background-image:url('https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=2000&q=80')">
+    <div class="cta-card">
+      <h2>Tell us <em>what to watch</em></h2>
+      <p>Say what you're interested in and the country. When a matching offer appears, we'll send it to you.</p>
+      <form class="form" id="alertForm">
+        <input name="interest" type="text" placeholder="What you're interested in" required aria-label="What you're interested in">
+        <input name="country" type="text" placeholder="Country" required aria-label="Country">
+        <input name="email" type="email" placeholder="Email for notifications" required aria-label="Email">
+        <button class="btn btn-mint btn-block" type="submit">Notify me <span class="arrow">→</span></button>
+        <p class="form-note" id="alertNote" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot">
+      <div>
+        <a class="logo" href="https://www.changeit4me.com/" style="color:#fff;margin-bottom:14px">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <circle cx="16" cy="16" r="16" fill="#a9ffca"/>
+            <path d="M10 16a6 6 0 0 1 10.2-4.2" stroke="#0c2c28" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M22 16a6 6 0 0 1-10.2 4.2" stroke="#0c2c28" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          ChangeIt4Me
+        </a>
+        <p>A platform for key-for-key exchange. Swap cars, real estate and goods directly — without overpaying or using middlemen.</p>
+      </div>
+      <div>
+        <nav class="foot-nav" aria-label="Footer">
+          <a href="https://www.changeit4me.com/browse">Browse</a>
+          <a href="https://www.changeit4me.com/about">About</a>
+          <a href="https://www.changeit4me.com/how-it-works">How it works</a>
+          <a href="https://www.changeit4me.com/faq">FAQs</a>
+          <a href="https://www.changeit4me.com/contact">Contact</a>
+        </nav>
+        <div class="socials" aria-label="More">
+          <a href="https://www.changeit4me.com/help" aria-label="Help">?</a>
+          <a href="mailto:info@changeit4me.com" aria-label="Email">@</a>
+          <a href="https://www.changeit4me.com/safety-tips" aria-label="Safety">✓</a>
+        </div>
+      </div>
+    </div>
+    <div class="wordmark">ChangeIt4Me</div>
+    <div class="legal">
+      <span>© 2026 Change It 4 Me</span>
+      <nav>
+        <a href="https://www.changeit4me.com/terms-of-service">Terms</a>
+        <a href="https://www.changeit4me.com/privacy-policy">Privacy</a>
+        <a href="https://www.changeit4me.com/cookie-policy">Cookies</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    const header = document.getElementById('header');
+    const toggle = document.getElementById('menuToggle');
+    const panel = document.getElementById('mobilePanel');
+    const slider = document.getElementById('slider');
+    const progress = document.getElementById('progress');
+    const preloaderEl = document.getElementById('preloader');
+    const preloaderCount = document.getElementById('preloaderCount');
+    const preloaderBar = document.getElementById('preloaderBar');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const loaderStarted = performance.now();
+    const loaderMin = reduceMotion ? 350 : 1700;
+    let pageLoaded = document.readyState === 'complete';
+    let loaderValue = 0;
+    window.addEventListener('load', () => { pageLoaded = true; });
+    window.setTimeout(() => { pageLoaded = true; }, 8000);
+
+    const finishLoader = () => {
+      document.body.classList.remove('is-loading');
+      document.body.classList.add('is-ready');
+      document.dispatchEvent(new Event('pageready'));
+      preloaderEl.classList.add('done');
+      preloaderEl.setAttribute('aria-hidden', 'true');
+      window.setTimeout(() => preloaderEl.remove(), 650);
+    };
+    const paintLoader = (now) => {
+      const elapsed = now - loaderStarted;
+      const cap = pageLoaded ? 100 : 90;
+      const goal = Math.min(cap, (elapsed / loaderMin) * 100);
+      const step = reduceMotion ? 1 : 0.12;
+      loaderValue += (goal - loaderValue) * step;
+      if (pageLoaded && elapsed >= loaderMin) loaderValue += Math.max(1.4, (100 - loaderValue) * 0.18);
+      if (goal - loaderValue < 0.35 && !(pageLoaded && loaderValue < 100)) loaderValue = goal;
+      const shown = Math.min(100, Math.round(loaderValue));
+      preloaderCount.textContent = shown + '%';
+      preloaderBar.style.width = shown + '%';
+      if (loaderValue >= 100) finishLoader();
+      else requestAnimationFrame(paintLoader);
+    };
+    requestAnimationFrame(paintLoader);
+
+    const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    const setMenu = (open) => {
+      panel.style.top = header.getBoundingClientRect().bottom + 'px';
+      panel.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      document.body.classList.toggle('menu-open', open);
+    };
+    toggle.addEventListener('click', () => setMenu(!panel.classList.contains('open')));
+    panel.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => setMenu(false));
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') setMenu(false);
+    });
+
+    const updateProgress = () => {
+      const max = slider.scrollWidth - slider.clientWidth;
+      const ratio = max > 0 ? slider.scrollLeft / max : 0;
+      progress.style.width = (30 + ratio * 70) + '%';
+    };
+    slider.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+
+    const revealNodes = document.querySelectorAll([
+      '.trust', '.about-copy', '.stat', '.split > *', '.section-head',
+      '.service', '.feature', '.shot', '.offer', '.step', '.plan',
+      '.article', '.map-frame', '.country-panel', '.cta-card', '.center'
+    ].join(','));
+    const showReveal = (node) => node.classList.add('in');
+    revealNodes.forEach((node, index) => {
+      node.classList.add('reveal');
+      node.style.transitionDelay = ((index % 3) * 70) + 'ms';
+    });
+    if (reduceMotion) {
+      revealNodes.forEach(showReveal);
+    } else {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const node = entry.target;
+          const show = () => showReveal(node);
+          if (document.body.classList.contains('is-ready')) show();
+          else document.addEventListener('pageready', show, { once: true });
+          revealObserver.unobserve(node);
+        });
+      }, { threshold: 0.14, rootMargin: '0px 0px -6% 0px' });
+      revealNodes.forEach((node) => revealObserver.observe(node));
+    }
+
+    const alertForm = document.getElementById('alertForm');
+    const alertNote = document.getElementById('alertNote');
+    alertForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(alertForm);
+      const interest = String(data.get('interest')).trim();
+      const country = String(data.get('country')).trim();
+      const email = String(data.get('email')).trim();
+      alertNote.textContent = 'Saved. We will write to ' + email + ' when there is a match for ' + interest + ' in ' + country + '.';
+      alertForm.reset();
+    });
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const places = [
+      {
+        country: 'Portugal', lat: 38.72, lng: -9.14,
+        offers: [{ title: 'Studio apartment in central Lisbon', meta: 'Real estate · Chiado', text: 'Furnished studio, open to a larger place outside the city.', href: 'https://www.changeit4me.com/listing/121' }]
+      },
+      {
+        country: 'New Zealand', lat: -36.85, lng: 174.76,
+        offers: [{ title: 'Family house with a garden', meta: 'Real estate · Mount Eden, Auckland', text: '3 bedrooms. Open to an apartment closer to the CBD.', href: 'https://www.changeit4me.com/listing/120' }]
+      },
+      {
+        country: 'Canada', lat: 43.65, lng: -79.38,
+        offers: [{ title: 'Modern downtown loft', meta: 'Real estate · Toronto', text: 'High ceilings. Looking toward a suburban house.', href: 'https://www.changeit4me.com/listing/119' }]
+      },
+      {
+        country: 'Spain', lat: 39.47, lng: -0.38,
+        offers: [{ title: 'Sunny 2-bed near the beach', meta: 'Real estate · Valencia', text: 'Renovated kitchen and covered parking. Open to a city flat.', href: 'https://www.changeit4me.com/listing/118' }]
+      },
+      {
+        country: 'United Kingdom', lat: 53.48, lng: -2.24,
+        offers: [{ title: 'Volkswagen Golf 7 GTI, 2017', meta: 'Cars · Manchester', text: 'Performance pack, DSG. Sale or key-for-key.', href: 'https://www.changeit4me.com/listing/117' }]
+      },
+      {
+        country: 'Japan', lat: 35.68, lng: 139.69,
+        offers: [{ title: 'Honda Civic Type R, 2020', meta: 'Cars · Tokyo', text: 'Stock exhaust, fresh tires. Open to a practical family car.', href: 'https://www.changeit4me.com/listing/116' }]
+      },
+      {
+        country: 'Germany', lat: 48.14, lng: 11.58,
+        offers: [{ title: 'BMW 320d Touring, 2018', meta: 'Cars · Munich', text: 'Panoramic roof. Open to an exchange for an EV.', href: 'https://www.changeit4me.com/listing/115' }]
+      },
+      {
+        country: 'United States', lat: 34.05, lng: -118.24,
+        offers: [{ title: 'Toyota Camry, 2019', meta: 'Cars · Los Angeles', text: 'One-owner hybrid, clean title. Open to a compact SUV.', href: 'https://www.changeit4me.com/listing/114' }]
+      }
+    ];
+
+    const countryPanel = document.getElementById('countryPanel');
+    const map = L.map('worldMap', {
+      scrollWheelZoom: false,
+      worldCopyJump: false,
+      zoomSnap: 0,
+      minZoom: 0
+    }).setView([16, 8], 2);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 8
+    }).addTo(map);
+    if (window.matchMedia('(pointer: coarse)').matches) map.dragging.disable();
+
+    const markers = [];
+    const showCountry = (place, marker) => {
+      markers.forEach((item) => item.getElement()?.querySelector('.pin')?.classList.remove('active'));
+      marker.getElement()?.querySelector('.pin')?.classList.add('active');
+      countryPanel.innerHTML =
+        '<h3>' + place.country + '</h3>' +
+        '<p class="hint">Offers posted in this country.</p>' +
+        '<ul class="offer-list">' +
+        place.offers.map((offer) =>
+          '<li><a href="' + offer.href + '"><strong>' + offer.title + '</strong><span>' + offer.meta + '</span><em>' + offer.text + '</em></a></li>'
+        ).join('') +
+        '</ul>';
+    };
+
+    places.forEach((place) => {
+      const icon = L.divIcon({ className: 'pin-wrap', html: '<span class="pin"></span>', iconSize: [28, 28], iconAnchor: [14, 14] });
+      const marker = L.marker([place.lat, place.lng], { icon, keyboard: true, title: place.country }).addTo(map);
+      const label = place.country + ' · ' + place.offers.length + (place.offers.length === 1 ? ' offer' : ' offers') + ' · click';
+      marker.bindTooltip(label, { direction: 'top', offset: [0, -10], opacity: 1, className: 'map-tip' });
+      marker.on('mouseover', function () { this.openTooltip(); });
+      marker.on('mouseout', function () { this.closeTooltip(); });
+      const openPlace = () => showCountry(place, marker);
+      marker.on('click', openPlace);
+      marker.getElement().addEventListener('click', openPlace);
+      markers.push(marker);
+    });
+
+    const frameWorld = () => {
+      map.invalidateSize();
+      const width = document.getElementById('worldMap').clientWidth;
+      map.setView([16, 8], Math.log2(width / 256));
+    };
+    frameWorld();
+    window.addEventListener('resize', frameWorld);
+  </script>
+</body>
+</html>
